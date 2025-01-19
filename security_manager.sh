@@ -25,7 +25,7 @@ mostrar_menu() {
     echo "11. eliminar reglas del firewall"
     echo "12. Salir"
     echo "******************************"
-    read -p "Selecciona una opción [1-10]: " opcion
+    read -p "Selecciona una opción [1-12]: " opcion
 }
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # 1 Función para configurar el firewall
@@ -237,7 +237,7 @@ configurar_fail2ban() {
     echo '5. ver ips bloqueadas'
     echo "6. Volver al menú principal"
     echo "*************************************"
-    read -p "Selecciona una opción [1-4]: " opcion_fail2ban
+    read -p "Selecciona una opción [1-6]: " opcion_fail2ban
 
     case $opcion_fail2ban in
         1)
