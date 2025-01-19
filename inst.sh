@@ -9,7 +9,7 @@ fi
 # Instalar las dependencias necesarias
 echo "Instalando dependencias necesarias..."
 apt-get update
-apt-get install -y nmap iftop iptables fail2ban
+apt-get install -y nmap iftop iptables fail2ban net-tools lynis netdiscover iptables-persistent
 
 # Verificar si las herramientas necesarias están instaladas
 command -v nmap >/dev/null 2>&1 || { echo "Error: nmap no se pudo instalar." >&2; exit 1; }
