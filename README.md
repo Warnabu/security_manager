@@ -34,35 +34,33 @@ Este script de gestión de seguridad está diseñado para ayudar a administrar y
 
 1. **Clonar el repositorio**:
 
-``bash
-git clone https://github.com/tu_usuario/security_manager.git
-cd security_manager
+        git clone https://github.com/tu_usuario/security_manager.git
+        cd security_manager
 
-
-    Ejecutar el script de instalación:
+Ejecutar el script de instalación:
 
 El script instalará todas las dependencias necesarias (como nmap, iptables, fail2ban, entre otras) y copiará el script principal a /usr/local/bin/ para que puedas ejecutarlo desde cualquier ubicación. Asegúrate de ejecutar este script como root o utilizando sudo:
 
-sudo bash install.sh
+        sudo bash install.sh
 
 El script se encargará de:
 
-    Actualizar los repositorios de tu sistema.
-    Instalar las dependencias necesarias.
-    Copiar el script principal (security_manager.sh) a una ubicación accesible.
+Actualizar los repositorios de tu sistema.
+Instalar las dependencias necesarias.
+Copiar el script principal (security_manager.sh) a una ubicación accesible.
 
 Uso
 
-    Ejecutar el script:
+Ejecutar el script:
         Para ejecutar el script, simplemente corre el siguiente comando:
 
-sudo security_manager
+    sudo security_manager
 
 Interfaz interactiva:
 
 El script proporcionará un menú interactivo donde podrás seleccionar diversas opciones de seguridad:
 
-    Elige una opción:
+Elige una opción:
     1) Configurar firewall
     2) Protege contra DDoS
     3) Realizar análisis de vulnerabilidades
@@ -73,7 +71,7 @@ El script proporcionará un menú interactivo donde podrás seleccionar diversas
     8) Guardar reglas
     9) Salir
 
-    Solo sigue las instrucciones en pantalla para configurar las opciones de seguridad.
+Solo sigue las instrucciones en pantalla para configurar las opciones de seguridad.
 
 Contribuciones
 
