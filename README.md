@@ -63,18 +63,18 @@ Interfaz interactiva:
 El script proporcionará un menú interactivo donde podrás seleccionar diversas opciones de seguridad:
 
 Elige una opción:
-    1. Configurar Firewall
-    2. Configuración de Fail2Ban (SSH)
-    3. Limitar Conexiones por IP (Prevención DDoS)
-    4. Escaneo de Puertos Abiertos
-    5. Monitoreo de Tráfico en Tiempo Real
-    6. Análisis de Logs (SSH y Sistema)
-    7. Escaneo de la Red Local
-    8. Escaneo de una Red Externa
-    9. Generar Reporte de Seguridad
-    10. Hacer un escaneo de vulnerabilidades
-    11. Eliminar reglas del firewall
-    12. Salir
+    1). Configurar Firewall
+    2). Configuración de Fail2Ban (SSH)
+    3). Limitar Conexiones por IP (Prevención DDoS)
+    4). Escaneo de Puertos Abiertos
+    5). Monitoreo de Tráfico en Tiempo Real
+    6). Análisis de Logs (SSH y Sistema)
+    7). Escaneo de la Red Local
+    8). Escaneo de una Red Externa
+    9). Generar Reporte de Seguridad
+    10). Hacer un escaneo de vulnerabilidades
+    11). Eliminar reglas del firewall
+    12). Salir (al salir, se guardan las reglas del firewall)
 
 Solo sigue las instrucciones en pantalla para configurar las opciones de seguridad.
 
