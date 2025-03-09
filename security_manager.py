@@ -1098,6 +1098,7 @@ def mostrar_menu():
         elif opcion == '11':
             eliminar_reglas()
         elif opcion == '12':
+            ejecutar_comando("sudo netfilter-persistent save")
             exit(0)
         else:
             print("Opción inválida. Intenta de nuevo.")
