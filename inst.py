@@ -26,7 +26,7 @@ for pkg in ["nmap", "iftop", "iptables", "fail2ban-client"]:
 print("Dependencias instaladas correctamente.")
 
 # Copiar el script principal y hacerlo ejecutable
-script_src = "security_manager.sh"
+script_src = "security_manager.py"
 script_dst = "/usr/local/bin/security_manager"
 
 if os.path.exists(script_src):
