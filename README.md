@@ -41,7 +41,9 @@ Ejecutar el script de instalación:
 
 El script instalará todas las dependencias necesarias (como nmap, iptables, fail2ban, entre otras) y copiará el script principal a /usr/local/bin/ para que puedas ejecutarlo desde cualquier ubicación. Asegúrate de ejecutar este script como root o utilizando sudo:
 
-        sudo bash install.sh
+        chmod +x inst.py
+        sudo ./inst.py
+        
 
 El script se encargará de:
 
@@ -61,21 +63,25 @@ Interfaz interactiva:
 El script proporcionará un menú interactivo donde podrás seleccionar diversas opciones de seguridad:
 
 Elige una opción:
-    1) Configurar firewall
-    2) Protege contra DDoS
-    3) Realizar análisis de vulnerabilidades
-    4) Administrar Fail2Ban
-    5) Analizar logs del sistema
-    6) Escanear red local
-    7) Escanear puertos con Nmap
-    8) Guardar reglas
-    9) Salir
+    1. Configurar Firewall
+    2. Configuración de Fail2Ban (SSH)
+    3. Limitar Conexiones por IP (Prevención DDoS)
+    4. Escaneo de Puertos Abiertos
+    5. Monitoreo de Tráfico en Tiempo Real
+    6. Análisis de Logs (SSH y Sistema)
+    7. Escaneo de la Red Local
+    8. Escaneo de una Red Externa
+    9. Generar Reporte de Seguridad
+    10. Hacer un escaneo de vulnerabilidades
+    11. Eliminar reglas del firewall
+    12. Salir
 
 Solo sigue las instrucciones en pantalla para configurar las opciones de seguridad.
 
 Contribuciones
 
 Si tienes ideas para nuevas funcionalidades o mejoras, ¡estaremos encantados de recibir tus contribuciones! Solo asegúrate de seguir las buenas prácticas de código y abrir un pull request.
+
 Licencia
 
 Este proyecto está licenciado bajo la Licencia MIT - ver el archivo LICENSE para más detalles.
@@ -83,8 +89,8 @@ Este proyecto está licenciado bajo la Licencia MIT - ver el archivo LICENSE par
 
 ### Explicación del `README.md` actualizado:
 
-- **Instalación**: Se ha añadido la sección para ejecutar el script `install.sh` que se encarga de instalar las dependencias automáticamente, de forma que el usuario no tenga que preocuparse de instalar nada manualmente. El script se ocupa de todo.
+- **Instalación**: Se ha añadido la sección para ejecutar el script `inst.py` que se encarga de instalar las dependencias automáticamente, de forma que el usuario no tenga que preocuparse de instalar nada manualmente. El script se ocupa de todo.
   
-- **Dependencias**: Ahora no es necesario que el usuario instale manualmente las dependencias, ya que el script `install.sh` lo hace por él.
+- **Dependencias**: Ahora no es necesario que el usuario instale manualmente las dependencias, ya que el script `inst.py` lo hace por él.
 
 
