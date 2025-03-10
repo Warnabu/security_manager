@@ -42,7 +42,7 @@ Ejecutar el script de instalación:
 El script instalará todas las dependencias necesarias (como nmap, iptables, fail2ban, entre otras) y copiará el script principal a /usr/local/bin/ para que puedas ejecutarlo desde cualquier ubicación. Asegúrate de ejecutar este script como root o utilizando sudo:
 
         chmod +x inst.py
-        sudo ./inst.py
+        sudo python3 inst.py
         
 
 El script se encargará de:
