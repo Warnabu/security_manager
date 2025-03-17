@@ -56,6 +56,7 @@ def crear_entorno_virtual():
 # Función para instalar paquetes con pip dentro del entorno virtual
 def instalar_paquetes_pip():
     """Instala los paquetes de Python utilizando pip."""
+    subprocess.run('pip install python-inquirer')
     if not os.path.exists(pip_executable):
         print(f"Error: pip no se encuentra en el entorno virtual.")
         sys.exit(1)
