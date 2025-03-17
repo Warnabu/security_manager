@@ -4,160 +4,44 @@ import os
 import subprocess
 import re
 import shlex
+import inquirer  # Importar la librería inquirer
+
+def ejecutar_comando(comando):
+   
+    try:
+        resultado = subprocess.run(comando, shell=True, text=True, capture_output=True)
+        if resultado.returncode == 0:
+            return resultado.stdout.strip()
+    except Exception as e:
+        print(f"Error ejecutando el comando: {e}")
+        return None
+    
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Comprobar si el script se está ejecutando como root
 if os.geteuid() != 0:
     print("Este script debe ejecutarse como root o con sudo.")
     exit(1)
 
-# Función para mostrar el menú principal
 
-
-# Funciones para cada opción del menú
-def configurar_firewall():
-    while True:
-        os.system('clear')
-        
-        print("********************************")
-        print("*  Configuración del Firewall  *")
-        print("********************************")
-        print("1. Configuración inicial")
-        print("2. Reglas de puertos")
-        print("3. Bloquear tráfico de una IP específica")
-        print("4. Permitir tráfico de una IP específica")
-        print("5. Permitir tráfico en un rango de IPs")
-        print("6. Bloquear tráfico en un rango de IPs")
-        print("7. Ver reglas actuales del firewall")
-        print("8. Limpiar todas las reglas del firewall")
-        print("9. Eliminar reglas concretas del firewall")
-        print("10. Volver")
-        print("*****************************")
-        opcion_firewall = input("Selecciona una opción [1-10]: ")
-        
-        if opcion_firewall == '1':
-            configuracion_inicial()
-        elif opcion_firewall == '2':
-            reglas_de_puertos()
-        elif opcion_firewall == '3':
-            bloquear_ip()
-        elif opcion_firewall == '4':
-            permitir_ip()
-        elif opcion_firewall == '5':
-            permitir_rango_ip()
-        elif opcion_firewall == '6':
-            denegar_rango_ip()
-        elif opcion_firewall == '7':
-            ver_reglas_firewall()
-            input("Presiona Enter para continuar...")
-        elif opcion_firewall == '8':
-            limpiar_reglas()
-            input("Presiona Enter para continuar...")
-        elif opcion_firewall == '9':
-            eliminar_reglas()
-        elif opcion_firewall == '10':
-            optimizar_firewall()
-            return
-        else:
-            print("Opción inválida. Intenta de nuevo.")
-        input("Presiona Enter para continuar...")
-        optimizar_firewall()
-        
-
-def configuracion_inicial():
-    print("Iniciando configuración del firewall...")
-    
-    # Limpiar reglas existentes antes de aplicar nuevas
-    subprocess.run(["iptables", "-F"], check=True)
-    subprocess.run(["iptables", "-X"], check=True)
-    subprocess.run(["iptables", "-Z"], check=True)
-    
-    # Preguntar si el usuario está conectado por SSH
-    conectado_ssh = input("¿Estás conectado por SSH? (si/no): ").strip().lower()
-    
-    if conectado_ssh == "si":
-        # Obtener la IP del usuario conectado por SSH
-        ip_ssh = os.environ.get("SSH_CLIENT", "").split()[0] if "SSH_CLIENT" in os.environ else ""
-        
-        if not ip_ssh:
-            print("No se pudo detectar la IP de la sesión SSH.")
-            os.system("who")
-            ip_ssh = input("Introduce manualmente tu IP SSH: ").strip()
-        
-        print(f"Detectada conexión SSH desde: {ip_ssh}")
-        
-        # Permitir SSH desde esta IP
-        subprocess.run(["iptables", "-A", "INPUT", "-p", "tcp", "-s", ip_ssh, "--dport", "22", "-j", "ACCEPT"], check=True)
-        subprocess.run(["iptables", "-A", "OUTPUT", "-p", "tcp", "--sport", "22", "-d", ip_ssh, "-j", "ACCEPT"], check=True)
-    
-    # Permitir tráfico de loopback (localhost)
-    subprocess.run(["iptables", "-A", "INPUT", "-i", "lo", "-j", "ACCEPT"], check=True)
-    subprocess.run(["iptables", "-A", "OUTPUT", "-o", "lo", "-j", "ACCEPT"], check=True)
-    
-    # Permitir tráfico ya establecido y relacionado
-    subprocess.run(["iptables", "-A", "INPUT", "-m", "state", "--state", "ESTABLISHED,RELATED", "-j", "ACCEPT"], check=True)
-    subprocess.run(["iptables", "-A", "OUTPUT", "-m", "state", "--state", "ESTABLISHED,RELATED", "-j", "ACCEPT"], check=True)
-    
-    # Permitir consultas DNS (para resolver dominios)
-    subprocess.run(["iptables", "-A", "OUTPUT", "-p", "udp", "--dport", "53", "-j", "ACCEPT"], check=True)
-    subprocess.run(["iptables", "-A", "INPUT", "-p", "udp", "--sport", "53", "-j", "ACCEPT"], check=True)
-    
-    # Permitir tráfico HTTP y HTTPS (para poder navegar y actualizar paquetes)
-    subprocess.run(["iptables", "-A", "OUTPUT", "-p", "tcp", "--dport", "80", "-j", "ACCEPT"], check=True)
-    subprocess.run(["iptables", "-A", "OUTPUT", "-p", "tcp", "--dport", "443", "-j", "ACCEPT"], check=True)
-    subprocess.run(["iptables", "-A", "INPUT", "-p", "tcp", "--sport", "80", "-j", "ACCEPT"], check=True)
-    subprocess.run(["iptables", "-A", "INPUT", "-p", "tcp", "--sport", "443", "-j", "ACCEPT"], check=True)
-    
-    # Permitir ping (ICMP)
-    subprocess.run(["iptables", "-A", "INPUT", "-p", "icmp", "-j", "ACCEPT"], check=True)
-    subprocess.run(["iptables", "-A", "OUTPUT", "-p", "icmp", "-j", "ACCEPT"], check=True)
-    
-    # Bloquear todo el tráfico no permitido explícitamente
-    subprocess.run(["iptables", "-P", "INPUT", "DROP"], check=True)
-    subprocess.run(["iptables", "-P", "FORWARD", "DROP"], check=True)
-    subprocess.run(["iptables", "-P", "OUTPUT", "DROP"], check=True)
-    
-    print("Configuración inicial del firewall aplicada.")
-
-
-def reglas_de_puertos():
-    while True:
-        os.system('clear')
-        print("********************************")
-        print("*       reglas de puertos      *")
-        print("********************************")
-        print("1. Permitir el trafico en un puerto o rango de puertos")
-        print("2. Denegar el trafico en un puerto o rango de puertos")
-        print("3. vorlver")
-        print("*****************************")
-        opcion_puertos = input("Selecciona una opción [1-3]: ")
-
-        if opcion_puertos == '1':
-            permitir_puerto()
-        elif opcion_puertos == '2':
-            cerrar_puerto()
-        elif opcion_puertos == '3':
-            return
-        else:
-            print("Opción inválida. Intenta de nuevo.")
-        optimizar_firewall()
-    
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
-def ejecutar_comando(comando):
-    """Ejecuta un comando en la terminal y devuelve la salida."""
-    try:
-        resultado = subprocess.run(comando, shell=True, text=True, capture_output=True)
-        return resultado.stdout.strip()
-    except Exception as e:
-        print(f"Error ejecutando el comando: {e}")
-        return None
-    
-    
+def ip_bloqueada(ip):
+    """Verifica si una IP está bloqueada en iptables."""
+    comando = f"sudo iptables -C INPUT -s {ip} -j DROP"
+    return ejecutar_comando(comando) is not None
+
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
+def ip_permitida(ip):
+    """Verifica si una IP está permitida en iptables."""
+    comando = f"sudo iptables -C INPUT -s {ip} -j ACCEPT"
+    return ejecutar_comando(comando) is not None
 
+    
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
 def regla_existente_puerto(cadena, protocolo, puerto, direccion):
-    """Verifica si una regla ya existe en iptables utilizando una búsqueda precisa."""
+    #Verifica si una regla ya existe en iptables utilizando una búsqueda precisa.
     reglas = ejecutar_comando("sudo iptables-save")
     if reglas:
         # Ajustamos el patrón para que coincida con la salida exacta de iptables-save
@@ -172,11 +56,22 @@ def regla_existente_puerto(cadena, protocolo, puerto, direccion):
         else:
             print(f"🚫 No se encontró la regla exacta con el patrón: {patron}")
     return False
-
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
+def validar_puerto(puerto):
+    if ':' in puerto:
+        inicio, fin = puerto.split(':')
+        return re.match(r'^\d+$', inicio) and re.match(r'^\d+$', fin) and 1 <= int(inicio) <= 65535 and 1 <= int(fin) <= 65535
+    return re.match(r'^\d+$', puerto) and 1 <= int(puerto) <= 65535
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def confirmar_accion(mensaje):
+    return input(f"{mensaje} (s/n): ").lower() == 's'
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Funciones para gestionar reglas de puertos
 def permitir_puerto():
-    puerto = input("Introduce el número de puerto o rang de puertos a permitir (Ej: 8080 o 8000:8080): ")
+    puerto = input("Introduce el número de puerto o rango de puertos a permitir (Ej: 8080 o 8000:8080): ")
     tipo = input("¿Deseas permitir tráfico TCP, UDP o ambos? (tcp/udp/ambos): ").lower()
     direccion = input("¿Deseas permitir tráfico entrante, saliente o ambos? (entrante/saliente/ambos): ").lower()
 
@@ -205,40 +100,57 @@ def permitir_puerto():
     for tipo in tipos:
         for dir_flag in direcciones:
             cadena = "INPUT" if dir_flag == "dport" else "OUTPUT"
+
+            # Verificar si existe una regla de bloqueo para este puerto
+            if regla_existente_drop_puerto(cadena, tipo, puerto, dir_flag):
+                print(f"Se encontró una regla de bloqueo para {tipo} en el puerto {puerto} ({direccion}). Eliminando...")
+                comando_eliminar = f"sudo iptables -D {cadena} -p {tipo} --{dir_flag} {puerto} -j DROP"
+                ejecutar_comando(comando_eliminar)
+            
             if regla_existente_puerto(cadena, tipo, puerto, dir_flag):
                 print(f"La regla para {tipo} en el puerto {puerto} ({direccion}) ya existe.")
             else:
                 comando = f"sudo iptables -I {cadena} 1 -p {tipo} --{dir_flag} {puerto} -j ACCEPT"
                 ejecutar_comando(comando)
                 print(f"Regla agregada: {tipo.upper()} {direccion.upper()} en el puerto {puerto}")
+       
+#-------------------------------------------------------------------------------------------------------------------------------------------------------         
+def regla_existente_drop_puerto(cadena, protocolo, puerto, direccion):
+    """Verifica si una regla de bloqueo ya existe en iptables."""
+    reglas = ejecutar_comando("sudo iptables-save")
+    if reglas:
+        if direccion == "dport":
+            patron = rf"-A {cadena} -p {protocolo} -m {protocolo} --dport {puerto} -j DROP"
+        else:  # Para sport
+            patron = rf"-A {cadena} -p {protocolo} -m {protocolo} --sport {puerto} -j DROP"
+
+        if re.search(patron, reglas):
+            print(f"✅ Regla de bloqueo encontrada para {protocolo.upper()} en {direccion.upper()} {puerto}.")
+            return True
+        else:
+            print(f"🚫 No se encontró la regla de bloqueo exacta con el patrón: {patron}")
+    return False
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
 def cerrar_puerto():
     puerto = input("Introduce el número de puerto o rango de puertos a cerrar (Ej: 8080 o 8000:8080): ")
+    if not validar_puerto(puerto):
+        print("Puerto o rango de puertos inválido.")
+        return
+
     tipo = input("¿Deseas cerrar tráfico TCP, UDP o ambos? (tcp/udp/ambos): ").lower()
     direccion = input("¿Deseas cerrar tráfico entrante, saliente o ambos? (entrante/saliente/ambos): ").lower()
 
-    tipos = []
-    if tipo == "tcp":
-        tipos.append("tcp")
-    elif tipo == "udp":
-        tipos.append("udp")
-    elif tipo == "ambos":
-        tipos = ["tcp", "udp"]
-    else:
-        print("Opción no válida. Debes elegir entre 'tcp', 'udp' o 'ambos'.")
+    tipos = {"tcp": ["tcp"], "udp": ["udp"], "ambos": ["tcp", "udp"]}.get(tipo, [])
+    direcciones = {"entrante": ["dport"], "saliente": ["sport"], "ambos": ["dport", "sport"]}.get(direccion, [])
+
+    if not tipos or not direcciones:
+        print("Opción no válida para tipo de tráfico o dirección.")
         return
 
-    direcciones = []
-    if direccion == "entrante":
-        direcciones.append("dport")
-    elif direccion == "saliente":
-        direcciones.append("sport")
-    elif direccion == "ambos":
-        direcciones = ["dport", "sport"]
-    else:
-        print("Opción no válida. Debes elegir entre 'entrante', 'saliente' o 'ambos'.")
+    if not confirmar_accion("¿Estás seguro de que quieres aplicar estos cambios?"):
+        print("Operación cancelada.")
         return
 
     for tipo in tipos:
@@ -246,62 +158,26 @@ def cerrar_puerto():
             cadena = "INPUT" if dir_flag == "dport" else "OUTPUT"
             if regla_existente_puerto(cadena, tipo, puerto, dir_flag):
                 comando = f"sudo iptables -D {cadena} -p {tipo} --{dir_flag} {puerto} -j ACCEPT"
-                ejecutar_comando(comando)
-                print(f"Regla eliminada: {tipo.upper()} {direccion.upper()} en el puerto {puerto}")
+                try:
+                    ejecutar_comando(comando)
+                    print(f"Regla eliminada: {tipo.upper()} {direccion.upper()} en el puerto {puerto}")
+                except Exception as e:
+                    print(f"Error al eliminar la regla: {e}")
             else:
                 print(f"No existe una regla para {tipo} en el puerto {puerto} ({direccion}).")
+                if confirmar_accion("¿Quieres añadir una regla de bloqueo?"):
+                    comando = f"sudo iptables -I {cadena} -p {tipo} --{dir_flag} {puerto} -j DROP"
+                    try:
+                        ejecutar_comando(comando)
+                        print(f"Regla de bloqueo añadida: {tipo.upper()} {direccion.upper()} en el puerto {puerto}")
+                    except Exception as e:
+                        print(f"Error al añadir la regla de bloqueo: {e}")
 
-
-#-------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
-def ip_bloqueada(ip):
-    """Verifica si una IP está bloqueada en iptables."""
-    try:
-        resultado = subprocess.run(
-            ["sudo", "iptables", "-L", "INPUT", "-v", "-n"],
-            capture_output=True, text=True, check=True
-        )
-        
-        # Buscar la IP en las reglas que contienen "DROP"
-        for linea in resultado.stdout.splitlines():
-            if "DROP" in linea and ip in linea:
-                return True
-        return False
-
-    except subprocess.CalledProcessError as e:
-        print(f"Error al ejecutar iptables: {e}")
-        return False
-    
-
+    print("Operación completada.")
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
-
-def ip_permitida(ip):
-    """Verifica si una IP está permitida en iptables."""
-    try:
-        resultado = subprocess.run(
-            ["sudo", "iptables", "-L", "INPUT", "-v", "-n"],
-            capture_output=True, text=True, check=True
-        )
-        
-        # Buscar la IP en las reglas que contienen "ACCEPT"
-        for linea in resultado.stdout.splitlines():
-            if "ACCEPT" in linea and ip in linea:
-                return True
-        return False
-
-    except subprocess.CalledProcessError as e:
-        print(f"Error al ejecutar iptables: {e}")
-        return False
-    
-
-
-#-------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
+# Funciones para gestionar reglas de IP
 def bloquear_ip():
     """Bloquea completamente una IP en iptables, incluyendo ping."""
     ip = input("Introduce la IP a bloquear: ").strip()
@@ -310,12 +186,12 @@ def bloquear_ip():
     if ip_permitida(ip):
         print(f"Eliminando reglas de aceptación existentes para la IP {ip}...")
         comandos_eliminar = [
-            [f"sudo iptables -D INPUT -s {ip} -j ACCEPT"],
-            [f"sudo iptables -D OUTPUT -d {ip} -j ACCEPT"],
-            [f"sudo iptables -D FORWARD -s {ip} -j ACCEPT"],
-            [f"sudo iptables -D FORWARD -d {ip} -j ACCEPT"],
-            [f"sudo iptables -D INPUT -p icmp --src {ip} -jACCEPT"],
-            [f"sudo iptables -D OUTPUT -p icmp --dst {ip} -j ACCEPT"],
+            f"sudo iptables -D INPUT -s {ip} -j ACCEPT",
+            f"sudo iptables -D OUTPUT -d {ip} -j ACCEPT",
+            f"sudo iptables -D FORWARD -s {ip} -j ACCEPT",
+            f"sudo iptables -D FORWARD -d {ip} -j ACCEPT",
+            f"sudo iptables -D INPUT -p icmp --src {ip} -j ACCEPT",
+            f"sudo iptables -D OUTPUT -p icmp --dst {ip} -j ACCEPT",
         ]
         for comando in comandos_eliminar:
             ejecutar_comando(comando)
@@ -329,19 +205,17 @@ def bloquear_ip():
     respuesta = input("Quiere agregar relgas de denegacion, o le vale con eliminar las de aceptacion? (si/no): ")
     if respuesta.lower() == "si":
         comandos_bloqueo = [
-            [f"sudo iptables -I INPUT 1 -s {ip} -j DROP"],
-            [f"sudo iptables -I OUTPUT 1 -d {ip} -j DROP"],
-            [f"sudo iptables -I FORWARD 1 -s {ip} -j DROP"],
-            [f"sudo iptables -I FORWARD 1 -d {ip} -j DROP"],
-            [f"sudo iptables -I INPUT 1 -p icmp --src {ip} -j DROP"],
-            [f"sudo iptables -I OUTPUT 1 -p icmp --dst {ip} -j DROP"],
-
+            f"sudo iptables -I INPUT 1 -s {ip} -j DROP",
+            f"sudo iptables -I OUTPUT 1 -d {ip} -j DROP",
+            f"sudo iptables -I FORWARD 1 -s {ip} -j DROP",
+            f"sudo iptables -I FORWARD 1 -d {ip} -j DROP",
+            f"sudo iptables -I INPUT 1 -p icmp --src {ip} -j DROP",
+            f"sudo iptables -I OUTPUT 1 -p icmp --dst {ip} -j DROP",
         ]
         for comando in comandos_bloqueo:
             ejecutar_comando(comando)
 
     print(f"La IP {ip} ha sido completamente bloqueada (incluido ping).")
-
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -388,10 +262,9 @@ def permitir_ip():
 
     print(f"La IP {ip} ha sido completamente permitida (incluido ping).")
 
-
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
+# Funciones para rangos de IP (PENDIENTES DE IMPLEMENTAR)
 def permitir_rango_ip():
     """Permitir tráfico de un rango de IPs (comprobando si está permitido)"""
     rango = input("Introduce el rango de IPs a permitir (Ej: 192.168.1.0/24): ").strip()
@@ -432,7 +305,6 @@ def permitir_rango_ip():
         ejecutar_comando(comando)
 
     print(f"El rango de IPs {rango} ha sido completamente permitido.")
-
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
 def denegar_rango_ip():
@@ -477,8 +349,9 @@ def denegar_rango_ip():
 
     print(f"El rango de IPs {rango} ha sido completamente bloqueado.")
 
-
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Funciones para gestionar reglas del firewall
 
 
 def ver_reglas_firewall():
@@ -505,32 +378,105 @@ def ver_reglas_firewall():
     print("*************************************")
 
 
+
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 def limpiar_reglas():
     # Implementar la función para limpiar todas las reglas del firewall
+        print("Limpiando todas las reglas del firewall...")
+        comandos = [
+            #eliminamos todas las reglas de trafico de red
+            [f"sudo iptables -F"],
+            #eliminamos cadenas personalizadas que se hayan podido crear
+            [f"sudo iptables -X"],
+            #y lo mismo pero para las tablas nat
+            [f"sudo iptables -t nat -F"],
+            [f"sudo iptables -t nat -X"],
+        ]
+        for comando in comandos:
+            ejecutar_comando(comando)
+        print("Reglas del firewall limpiadas.")
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
+def listar_reglas(cadena):
+    """Muestra las reglas numeradas de una cadena específica."""
+    print(f"--- Reglas en la cadena {cadena} ---")
+    return ejecutar_comando(f"sudo iptables -L {cadena} --line-numbers -n")
 
-    print("Limpiando todas las reglas del firewall...")
-    comandos = [
-        #eliminamos todas las reglas de trafico de red
-        [f"sudo iptables -F"],
-        #eliminamos cadenas personalizadas que se hayan podido crear
-        [f"sudo iptables -X"],
-        #y lo mismo pero para las tablas nat
-        [f"sudo iptables -t nat -F"],
-        [f"sudo iptables -t nat -X"],
-    ]
-    for comando in comandos:
-        ejecutar_comando(comando)
-    print("Reglas del firewall limpiadas.")
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def eliminar_reglas2(cadena, reglas):
+    """Elimina múltiples reglas especificadas en una cadena."""
+    for regla_num in reglas:
+        print(f"Eliminando la regla número {regla_num} de la cadena {cadena}...")
+        resultado = ejecutar_comando(f"sudo iptables -D {cadena} {regla_num}")
+        print(f"Se ha eliminado la regla número {regla_num} en la cadena {cadena}.")
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+def eliminar_reglas():
+    """Función principal para eliminar reglas del firewall."""
+    print("************************************")
+    print("*   Eliminar Reglas del Firewall   *")
+    print("************************************")
+
+    while True:
+        # Mostrar las reglas de todas las cadenas
+        resultado = ejecutar_comando("sudo iptables -L --line-numbers -n")
+        print(resultado)
+
+        # Preguntar al usuario qué tipo de cadena desea modificar
+        opcion = input("¿Quieres eliminar reglas de INPUT (1), FORWARD (2), OUTPUT (3) o salir (4)? [1-4]: ")
+        
+        if opcion not in ["1", "2", "3"]:
+            if opcion == "4":
+                print("Saliendo del menú de eliminación de reglas.")
+                break
+            else:
+                print("Opción no válida. Elige 1, 2, 3 o 4.")
+                continue
+        
+        # Definir la cadena según la opción
+        if opcion == "1":
+            cadena = "INPUT"
+        elif opcion == "2":
+            cadena = "FORWARD"
+        else:
+            cadena = "OUTPUT"
+
+        # Listar las reglas de la cadena seleccionada
+        listar_reglas(cadena)
+
+        # Solicitar al usuario los números de regla a eliminar (separados por comas)
+        reglas_str = input("Introduce los números de las reglas a eliminar (separados por comas de mayor a menor: 4,3,1): ")
+
+        # Convertir la cadena de números a una lista de enteros
+        reglas = [int(x.strip()) for x in reglas_str.split(",") if x.strip().isdigit()]
+
+        # Validar si hay reglas válidas
+        if not reglas:
+            print("No se ha ingresado ningún número de regla válido.")
+            continue
+
+        # Confirmar la eliminación
+        confirmacion = input(f"¿Seguro que deseas eliminar las reglas {', '.join(map(str, reglas))} de la cadena {cadena}? (s/n): ")
+        if confirmacion.lower() == 's':
+            eliminar_reglas2(cadena, reglas)
+
+        # Preguntar si desea eliminar más reglas
+        continuar = input("¿Quieres eliminar más reglas? (s/n): ")
+        if continuar.lower() != "s":
+            print("Saliendo del menú de eliminación de reglas.")
+            break
+
+    # Guardar las reglas de iptables para que se mantengan después del reinicio
+    ejecutar_comando("sudo netfilter-persistent save")
+    print("Se han guardado las reglas de iptables para que sean persistentes.")
 
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
 def optimizar_firewall():
-    """Optimiza el orden de las reglas del firewall: primero los bloqueos (DROP), luego los permisos (ACCEPT)."""
     print("Analizando reglas del firewall...")
 
     # Obtener todas las reglas actuales en formato de lista
@@ -539,82 +485,144 @@ def optimizar_firewall():
     if not reglas:
         print("Error al obtener las reglas de iptables.")
         return
+
     limpiar_reglas()
     bloqueos = []
     permisos = []
-    
+    reglas_unicas = set()  # Usamos un conjunto para eliminar duplicados
+
     # Analizar reglas y clasificarlas
     for regla in reglas.split("\n"):
-        print(f'{regla}')
-        if "-j DROP" in regla:
-            bloqueos.append(regla)
-        elif "-j ACCEPT" in regla:
-            permisos.append(regla)
+        regla = regla.strip()
+        if not regla or regla.startswith("#"):
+            continue  # Ignorar líneas vacías o comentarios
+        
+        # Eliminar el número de línea si está presente
+        regla = re.sub(r'^\[\d+:\w+\]\s*', '', regla)
+        
+        if regla not in reglas_unicas:
+            reglas_unicas.add(regla)
+            if "-j DROP" in regla:
+                bloqueos.append(regla)
+            elif "-j ACCEPT" in regla:
+                permisos.append(regla)
 
     print("Optimizando reglas...")
-
-    
 
     # Aplicar primero los bloqueos
     for regla in bloqueos:
         comando = f"sudo iptables {regla}"
-        print(comando)
         ejecutar_comando(comando)
 
     # Aplicar luego los permisos
     for regla in permisos:
         comando = f"sudo iptables {regla}"
-        print(comando)
         ejecutar_comando(comando)
 
-
-
-#-------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
-def configurar_fail2ban():
-    print("\033c", end="")
-    """Menú interactivo para configurar Fail2Ban."""
-    while True:
-        print("\n*************************************")
-        print("*  Configuración de Fail2Ban (SSH)  *")
-        print("*************************************")
-        print("1. Configurar Fail2Ban para SSH")
-        print("2. Ver configuración actual de Fail2Ban")
-        print("3. Desactivar Fail2Ban")
-        print("4. Desbanear una IP")
-        print("5. Ver IPs bloqueadas")
-        print("6. Volver al menú principal")
-        print("*************************************")
-
-        opcion_fail2ban = input("Selecciona una opción [1-6]: ")
-
-        if opcion_fail2ban == "1":
-            configurar_fail2ban_ssh()
-        elif opcion_fail2ban == "2":
-            ver_configuracion_fail2ban()
-        elif opcion_fail2ban == "3":
-            desactivar_fail2ban()
-        elif opcion_fail2ban == "4":
-            ip = input("Introduce la IP a desbloquear: ")
-            comando = f"sudo fail2ban-client set sshd unbanip {ip}"
-            ejecutar_comando(comando)
-            print(f"IP {ip} desbaneada.")
-        elif opcion_fail2ban == "5":
-            comando = "sudo fail2ban-client status sshd"
-            ejecutar_comando(comando)
-        elif opcion_fail2ban == "6":
-            break
-        else:
-            print("Opción inválida. Intenta de nuevo.")
-
-        input("Presiona Enter para continuar...")
-
+    print("Guardando reglas optimizadas...")
+    ejecutar_comando("sudo netfilter-persistent save")
+    print("Optimización del firewall completada.")
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
+# Funciones del menú principal
+def mostrar_menu_principal():
+    """Muestra el menú principal utilizando inquirer."""
+    preguntas = [
+        inquirer.List(
+            "opcion",
+            message="¿Qué quieres hacer?",
+            choices=[
+                ("Configuración del Firewall", "configurar_firewall"),
+                ("Configuración de Fail2Ban (SSH)", "configurar_fail2ban"),
+                ("Limitar Conexiones por IP (Prevención DDoS)", "mitigar_ddos"),
+                ("Escaneo de Puertos Abiertos", "escaneo_puertos"),
+                ("Monitoreo de Tráfico en Tiempo Real", "monitoreo_trafico"),
+                ("Análisis de Logs (SSH y Sistema)", "analizar_logs"),
+                ("Escaneo de la Red Local", "escaneo_red_local"),
+                ("Escaneo de una Red Externa", "escaneo_red_externa"),
+                ("Generar Reporte de Seguridad", "generar_reporte"),
+                ("Hacer un escaneo de vulnerabilidades", "escanear_vulnerabilidades"),
+                ("Eliminar reglas del firewall", "eliminar_reglas"),
+                ("Salir", "salir"),
+            ],
+        ),
+    ]
+    respuesta = inquirer.prompt(preguntas)
+    return respuesta["opcion"]
+
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Menú de configuración del firewall
+def mostrar_menu_firewall():
+    """Muestra el menú de configuración del firewall."""
+    preguntas = [
+        inquirer.List(
+            "opcion",
+            message="¿Qué quieres hacer en el firewall?",
+            choices=[
+                ("Configuración inicial", "configuracion_inicial"),
+                ("Reglas de puertos", "reglas_de_puertos"),
+                ("Bloquear tráfico de una IP específica", "bloquear_ip"),
+                ("Permitir tráfico de una IP específica", "permitir_ip"),
+                ("Permitir tráfico en un rango de IPs", "permitir_rango_ip"),
+                ("Bloquear tráfico en un rango de IPs", "denegar_rango_ip"),
+                ("Ver reglas actuales del firewall", "ver_reglas_firewall"),
+                ("Limpiar todas las reglas del firewall", "limpiar_reglas"),
+                ("Eliminar reglas concretas del firewall", "eliminar_reglas"),
+                ("Volver al menú principal", "volver"),
+            ],
+        ),
+    ]
+    respuesta = inquirer.prompt(preguntas)
+    return respuesta["opcion"]
+
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Menu de fail2ban
+def mostrar_menu_fail2ban():
+    """Muestra el menú de configuración de Fail2Ban."""
+    preguntas = [
+        inquirer.List(
+            "opcion",
+            message="¿Qué quieres hacer en el fail2ban?",
+            choices=[
+                ("Configurar Fail2Ban", "configurar_fail2ban_ssh"),
+                ("Ver configuracion actual del fail2Ban", "ver_configuracion_fail2ban"),
+                ("Desactivar Fail2Ban", "desactivar_fail2ban"),
+                ("Desbanear una IP", "desbanear_IP"),
+                ("Ver IPs bloqueadas", "VIPB"),
+                ("Volver al menú principal", "volver"),
+            ],
+        ),
+    ]
+    respuesta = inquirer.prompt(preguntas)
+    return respuesta["opcion"]
+    
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Menu de reglas de puertos
+def mostrar_menu_reglas_puertos():
+    """Muestra el menú de reglas de puertos."""
+    preguntas = [
+        inquirer.List(
+            "opcion",
+            message="¿Qué quieres hacer con las reglas de puertos?",
+            choices=[
+                ("Permitir el tráfico en un puerto o rango de puertos", "permitir_puerto"),
+                ("Denegar el tráfico en un puerto o rango de puertos", "cerrar_puerto"),
+                ("Volver al menú de configuración del firewall", "volver"),
+            ],
+        ),
+    ]
+    respuesta = inquirer.prompt(preguntas)
+    return respuesta["opcion"]
+
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Funciones placeholder para las opciones del menú principal
 def configurar_fail2ban_ssh():
-    print("\033c", end="")
+    os.system('clear')
 
     """Configura Fail2Ban para proteger SSH."""
     print("****************************************")
@@ -661,35 +669,10 @@ maxretry = {maxretry}
     print("Aplicando configuración...")
     ejecutar_comando("sudo systemctl restart fail2ban")
 
-
-#-------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
-def ver_configuracion_fail2ban():
-    print("\033c", end="")
-
-    """Muestra la configuración actual de Fail2Ban."""
-    print("**************************************")
-    print("*  Configuración Actual de Fail2Ban  *")
-    print("**************************************")
-    
-    # Mostrar el contenido del archivo jail.local
-    try:
-        with open("/etc/fail2ban/jail.local", "r") as archivo:
-            print(archivo.read())
-    except FileNotFoundError:
-        print("No se encontró el archivo de configuración jail.local. ¿Está Fail2Ban instalado?")
-    
-    # Mostrar el estado actual de Fail2Ban
-    print("**************************************")
-    ejecutar_comando("sudo fail2ban-client status")
-    print("**************************************")
-
-
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
 def desactivar_fail2ban():
-    print("\033c", end="")
+    os.system('clear')
 
     """Detiene y desactiva Fail2Ban."""
     print("***************************")
@@ -701,14 +684,24 @@ def desactivar_fail2ban():
     ejecutar_comando("sudo systemctl disable fail2ban")
     
     print("Fail2Ban ha sido desactivado.")
-
-
-
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
+def desbanear_IP():
+    ip = input("Introduce la IP a desbloquear: ")
+    comando = f"sudo fail2ban-client set sshd unbanip {ip}"
+    ejecutar_comando(comando)
+    print(f"IP {ip} desbaneada.")
+  
+
+# ---------------------------------------------------------------------------------------------------------------------------
+
+def VIPB():
+    comando = "sudo fail2ban-client status sshd"
+    ejecutar_comando(comando)
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
 
 def mitigar_ddos():
-    print("\033c", end="")
+    os.system('clear')
 
     print("Configuración interactiva para mitigación de DDoS")
     print("-----------------------------------------------")
@@ -784,7 +777,9 @@ def mitigar_ddos():
     print("Configuración de mitigación de DDoS completada. Verifica con 'iptables -L -n -v'.")
     input("Presiona Enter para continuar...")
 
+
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 def escaneo_puertos():
     print('Escaneando puertos abiertos...')
@@ -795,13 +790,14 @@ def escaneo_puertos():
     
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
+
 def monitoreo_trafico():
     # Implementar el monitoreo de tráfico en tiempo real
     print('monitoreando trafico en tiempo real...')
     subprocess.call("sudo iftop", shell=True)
 
-
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 def analizar_logs():
     """Selecciona entre análisis simple o avanzado de logs."""
@@ -855,7 +851,6 @@ def analizar_logs_simple():
     print("****************************")
     input('\nPresiona Enter para continuar...')
 
-
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
 def analizar_logs_avanzado():
@@ -899,6 +894,7 @@ def analizar_logs_avanzado():
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
+
 def escaneo_red_local():
     # Implementar el escaneo de la red local
     salida = ejecutar_comando("ip -o -f inet addr show | awk '/scope global/ {print $4}'")
@@ -906,7 +902,6 @@ def escaneo_red_local():
         print('no se pudo detectar la direccion automaticamente')
         salida = input('Introduce la direccion de red: ')
     subprocess.call(f"netdiscover -r {salida}", shell=True)
-   
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -920,6 +915,7 @@ def escaneo_red_externa():
     print(salida)
     input('\nPresiona Enter para continuar...')
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 
 def generar_reporte():
@@ -955,6 +951,7 @@ def generar_reporte():
     
     print(f"Reporte generado: {nombre_reporte}")
     input('\nPresiona Enter para continuar...')
+
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -975,134 +972,221 @@ def escanear_vulnerabilidades():
     print("*****************************")
     print("El informe de vulnerabilidades puede ser revisado en el archivo 'lynis_report.txt'.")
 
-
-#-------------------------------------------------------------------------------------------------------------------------------------------------------
-def listar_reglas(cadena):
-    """Muestra las reglas numeradas de una cadena específica."""
-    print(f"--- Reglas en la cadena {cadena} ---")
-    return ejecutar_comando(f"sudo iptables -L {cadena} --line-numbers -n")
-
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
-def eliminar_reglas2(cadena, reglas):
-    """Elimina múltiples reglas especificadas en una cadena."""
-    for regla_num in reglas:
-        print(f"Eliminando la regla número {regla_num} de la cadena {cadena}...")
-        resultado = ejecutar_comando(f"sudo iptables -D {cadena} {regla_num}")
-        print(f"Se ha eliminado la regla número {regla_num} en la cadena {cadena}.")
+# Funciones para cada opción del menú de fail2ban
+
+def ver_configuracion_fail2ban():
+    os.system('clear')
+
+    """Muestra la configuración actual de Fail2Ban."""
+    print("**************************************")
+    print("*  Configuración Actual de Fail2Ban  *")
+    print("**************************************")
+    
+    # Mostrar el contenido del archivo jail.local
+    try:
+        with open("/etc/fail2ban/jail.local", "r") as archivo:
+            print(archivo.read())
+    except FileNotFoundError:
+        print("No se encontró el archivo de configuración jail.local. ¿Está Fail2Ban instalado?")
+    
+
+    print("**************************************")
+
+
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
-def eliminar_reglas():
-    """Función principal para eliminar reglas del firewall."""
-    print("************************************")
-    print("*   Eliminar Reglas del Firewall   *")
-    print("************************************")
-
-    while True:
-        # Mostrar las reglas de todas las cadenas
-        resultado = ejecutar_comando("sudo iptables -L --line-numbers -n")
-        print(resultado)
-
-        # Preguntar al usuario qué tipo de cadena desea modificar
-        opcion = input("¿Quieres eliminar reglas de INPUT (1), FORWARD (2), OUTPUT (3) o salir (4)? [1-4]: ")
+def configuracion_inicial():
+    print("Iniciando configuración del firewall...")
+    
+    # Limpiar reglas existentes antes de aplicar nuevas
+    subprocess.run(["iptables", "-F"], check=True)
+    subprocess.run(["iptables", "-X"], check=True)
+    subprocess.run(["iptables", "-Z"], check=True)
+    
+    # Preguntar si el usuario está conectado por SSH
+    conectado_ssh = input("¿Estás conectado por SSH? (si/no): ").strip().lower()
+    
+    if conectado_ssh == "si":
+        # Obtener la IP del usuario conectado por SSH
+        ip_ssh = os.environ.get("SSH_CLIENT", "").split()[0] if "SSH_CLIENT" in os.environ else ""
         
-        if opcion not in ["1", "2", "3"]:
-            if opcion == "4":
-                print("Saliendo del menú de eliminación de reglas.")
-                break
-            else:
-                print("Opción no válida. Elige 1, 2, 3 o 4.")
-                continue
+        if not ip_ssh:
+            print("No se pudo detectar la IP de la sesión SSH.")
+            os.system("who")
+            ip_ssh = input("Introduce manualmente tu IP SSH: ").strip()
         
-        # Definir la cadena según la opción
-        if opcion == "1":
-            cadena = "INPUT"
-        elif opcion == "2":
-            cadena = "FORWARD"
-        else:
-            cadena = "OUTPUT"
-
-        # Listar las reglas de la cadena seleccionada
-        listar_reglas(cadena)
-
-        # Solicitar al usuario los números de regla a eliminar (separados por comas)
-        reglas_str = input("Introduce los números de las reglas a eliminar (separados por comas de mayor a menor: 4,3,1): ")
-
-        # Convertir la cadena de números a una lista de enteros
-        reglas = [int(x.strip()) for x in reglas_str.split(",") if x.strip().isdigit()]
-
-        # Validar si hay reglas válidas
-        if not reglas:
-            print("No se ha ingresado ningún número de regla válido.")
-            continue
-
-        # Confirmar la eliminación
-        confirmacion = input(f"¿Seguro que deseas eliminar las reglas {', '.join(map(str, reglas))} de la cadena {cadena}? (s/n): ")
-        if confirmacion.lower() == 's':
-            eliminar_reglas2(cadena, reglas)
-
-        # Preguntar si desea eliminar más reglas
-        continuar = input("¿Quieres eliminar más reglas? (s/n): ")
-        if continuar.lower() != "s":
-            print("Saliendo del menú de eliminación de reglas.")
-            break
-
-    # Guardar las reglas de iptables para que se mantengan después del reinicio
-    ejecutar_comando("sudo netfilter-persistent save")
-    print("Se han guardado las reglas de iptables para que sean persistentes.")
+        print(f"Detectada conexión SSH desde: {ip_ssh}")
+        
+        # Permitir SSH desde esta IP
+        subprocess.run(["iptables", "-A", "INPUT", "-p", "tcp", "-s", ip_ssh, "--dport", "22", "-j", "ACCEPT"], check=True)
+        subprocess.run(["iptables", "-A", "OUTPUT", "-p", "tcp", "--sport", "22", "-d", ip_ssh, "-j", "ACCEPT"], check=True)
+    
+    # Permitir tráfico de loopback (localhost)
+    subprocess.run(["iptables", "-A", "INPUT", "-i", "lo", "-j", "ACCEPT"], check=True)
+    subprocess.run(["iptables", "-A", "OUTPUT", "-o", "lo", "-j", "ACCEPT"], check=True)
+    
+    # Permitir tráfico ya establecido y relacionado
+    subprocess.run(["iptables", "-A", "INPUT", "-m", "state", "--state", "ESTABLISHED,RELATED", "-j", "ACCEPT"], check=True)
+    subprocess.run(["iptables", "-A", "OUTPUT", "-m", "state", "--state", "ESTABLISHED,RELATED", "-j", "ACCEPT"], check=True)
+    
+    # Permitir consultas DNS (para resolver dominios)
+    subprocess.run(["iptables", "-A", "OUTPUT", "-p", "udp", "--dport", "53", "-j", "ACCEPT"], check=True)
+    subprocess.run(["iptables", "-A", "INPUT", "-p", "udp", "--sport", "53", "-j", "ACCEPT"], check=True)
+    
+    # Permitir tráfico HTTP y HTTPS (para poder navegar y actualizar paquetes)
+    subprocess.run(["iptables", "-A", "OUTPUT", "-p", "tcp", "--dport", "80", "-j", "ACCEPT"], check=True)
+    subprocess.run(["iptables", "-A", "OUTPUT", "-p", "tcp", "--dport", "443", "-j", "ACCEPT"], check=True)
+    subprocess.run(["iptables", "-A", "INPUT", "-p", "tcp", "--sport", "80", "-j", "ACCEPT"], check=True)
+    subprocess.run(["iptables", "-A", "INPUT", "-p", "tcp", "--sport", "443", "-j", "ACCEPT"], check=True)
+    
+    # Permitir ping (ICMP)
+    subprocess.run(["iptables", "-A", "INPUT", "-p", "icmp", "-j", "ACCEPT"], check=True)
+    subprocess.run(["iptables", "-A", "OUTPUT", "-p", "icmp", "-j", "ACCEPT"], check=True)
+    
+    # Bloquear todo el tráfico no permitido explícitamente
+    subprocess.run(["iptables", "-P", "INPUT", "DROP"], check=True)
+    subprocess.run(["iptables", "-P", "FORWARD", "DROP"], check=True)
+    subprocess.run(["iptables", "-P", "OUTPUT", "DROP"], check=True)
+    subprocess.run(["netfilter-persistent", "save"], check=True)
+    print("Configuración inicial del firewall aplicada.")
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
-# Menú principal
-def mostrar_menu():
+# Menu principal
+def main():
+    """Función principal para ejecutar el script."""
     while True:
         os.system('clear')
-        print("**********************************")
-        print("*  Gestión Avanzada de Seguridad *")
-        print("**********************************")
-        print("1. Configurar Firewall")
-        print("2. Configuración de Fail2Ban (SSH)")
-        print("3. Limitar Conexiones por IP (Prevención DDoS)")
-        print("4. Escaneo de Puertos Abiertos")
-        print("5. Monitoreo de Tráfico en Tiempo Real")
-        print("6. Análisis de Logs (SSH y Sistema)")
-        print("7. Escaneo de la Red Local")
-        print("8. Escaneo de una Red Externa")
-        print("9. Generar Reporte de Seguridad")
-        print("10. Hacer un escaneo de vulnerabilidades")
-        print("11. Eliminar reglas del firewall")
-        print("12. Salir")
-        print("******************************")
-        opcion = input("Selecciona una opción [1-12]: ")
-        if opcion == '1':
+        opcion = mostrar_menu_principal()
+
+        if opcion == "configurar_firewall":
             configurar_firewall()
-        elif opcion == '2':
+
+        elif opcion == "configurar_fail2ban":
             configurar_fail2ban()
-        elif opcion == '3':
+
+        elif opcion == "mitigar_ddos":
             mitigar_ddos()
-        elif opcion == '4':
+
+        elif opcion == "escaneo_puertos":
             escaneo_puertos()
-        elif opcion == '5':
+
+        elif opcion == "monitoreo_trafico":
             monitoreo_trafico()
-        elif opcion == '6':
+
+        elif opcion == "analizar_logs":
             analizar_logs()
-        elif opcion == '7':
+
+        elif opcion == "escaneo_red_local":
             escaneo_red_local()
-        elif opcion == '8':
+
+        elif opcion == "escaneo_red_externa":
             escaneo_red_externa()
-        elif opcion == '9':
+
+        elif opcion == "generar_reporte":
             generar_reporte()
-        elif opcion == '10':
+
+        elif opcion == "escanear_vulnerabilidades":
             escanear_vulnerabilidades()
-        elif opcion == '11':
+
+        elif opcion == "eliminar_reglas":
             eliminar_reglas()
-        elif opcion == '12':
+
+        elif opcion == "salir":
             ejecutar_comando("sudo netfilter-persistent save")
-            exit(0)
+            print("Saliendo del script.")
+            break
+
         else:
             print("Opción inválida. Intenta de nuevo.")
 
+        input("Presiona Enter para continuar...")
 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def configurar_firewall():
+    """Configuracion del firewall"""
+    while True:
+        os.system('clear')
+        opcion_firewall = mostrar_menu_firewall()
+
+        if opcion_firewall == 'configuracion_inicial':
+            configuracion_inicial()
+        elif opcion_firewall == 'reglas_de_puertos':
+            reglas_de_puertos()
+        elif opcion_firewall == 'bloquear_ip':
+            bloquear_ip()
+        elif opcion_firewall == 'permitir_ip':
+            permitir_ip()
+        elif opcion_firewall == 'permitir_rango_ip':
+            permitir_rango_ip()
+        elif opcion_firewall == 'denegar_rango_ip':
+            denegar_rango_ip()
+        elif opcion_firewall == 'ver_reglas_firewall':
+            ver_reglas_firewall()
+            input("Presiona Enter para continuar...")
+        elif opcion_firewall == 'limpiar_reglas':
+            limpiar_reglas()
+            input("Presiona Enter para continuar...")
+        elif opcion_firewall == 'eliminar_reglas':
+            eliminar_reglas()
+        elif opcion_firewall == 'volver':
+            optimizar_firewall()
+            return
+        else:
+            print("Opción inválida. Intenta de nuevo.")
+        input("Presiona Enter para continuar...")
+        optimizar_firewall()
+
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def reglas_de_puertos():
+    """Reglas de puertos"""
+    while True:
+        os.system('clear')
+        opcion_puertos = mostrar_menu_reglas_puertos()
+
+        if opcion_puertos == 'permitir_puerto':
+            permitir_puerto()
+        elif opcion_puertos == 'cerrar_puerto':
+            cerrar_puerto()
+        elif opcion_puertos == 'volver':
+            return
+        else:
+            print("Opción inválida. Intenta de nuevo.")
+        optimizar_firewall()
+
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Menu de configuración de Fail2Ban
+def configurar_fail2ban():
+    """Muestra el menú de configuración de Fail2Ban."""
+    while True:
+        os.system('clear')
+        opcion_fail2ban = mostrar_menu_fail2ban()
+
+        if opcion_fail2ban == "configurar_fail2ban_ssh":
+            configurar_fail2ban_ssh()
+        elif opcion_fail2ban == "ver_configuracion_fail2ban":
+            ver_configuracion_fail2ban()
+        elif opcion_fail2ban == "VIPB":
+            VIPB()
+        elif opcion_fail2ban == "desactivar_fail2ban":
+            desactivar_fail2ban()
+        elif opcion_fail2ban == "desbanear_IP":
+            desbanear_IP()
+        elif opcion_fail2ban == "volver":
+            break
+        else:
+            print("Opción inválida. Intenta de nuevo.")
+        input("Presiona Enter para continuar...")
+
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Funciones placeholder para las opciones del menú principal
 if __name__ == "__main__":
-    mostrar_menu()
+    main()
+
