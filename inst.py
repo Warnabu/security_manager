@@ -14,7 +14,7 @@ if os.geteuid() != 0:
 packages = ["nmap", "iftop", "iptables", "fail2ban", "net-tools", "lynis", "netdiscover", "iptables-persistent", "python3-pip", "python3-venv"]
 
 # Lista de paquetes de Python (pip)
-python_packages = ["inquirer"]
+python_packages = ["inquirer", "colorama", "rich"]
 
 # Obtener la ruta al directorio del script
 script_dir = os.path.dirname(os.path.abspath(__file__))
