@@ -977,6 +977,40 @@ class LogAnalyzer:
                     self.console.print(f"[red]{salida}[/red]")
 
         input("\n🔍 Análisis avanzado completado. Presiona Enter...")
+        
+    def analizar_logs_por_tipo(self):
+        """Análisis específico por tipo de log."""
+        tipos_logs = {
+            "1": ("/var/log/auth.log", "Logs de Autenticación"),
+            "2": ("/var/log/syslog", "Logs del Sistema"),
+            "3": ("/var/log/kern.log", "Logs del Kernel"),
+            "4": ("/var/log/apache2/access.log", "Logs de Apache"),
+            "5": ("/var/log/nginx/access.log", "Logs de Nginx")
+        }
+
+        self.console.print("[bold cyan]Selecciona un tipo de Log:[/bold cyan]")
+        for key, (_, nombre) in tipos_logs.items():
+            self.console.print(f"{key}. {nombre}")
+
+        opcion = input("\nElige una opción: ")
+        if opcion in tipos_logs:
+            ruta, nombre = tipos_logs[opcion]
+            self.console.print(f"\n[bold yellow]{nombre}[/bold yellow]")
+            
+            if os.path.exists(ruta):
+                with open(ruta, 'r') as archivo:
+                    lineas = archivo.readlines()
+                    total_lineas = len(lineas)
+                    
+                    self.console.print(f"📊 Total de líneas: [bold green]{total_lineas}[/bold green]")
+                    self.console.print("Últimas 50 líneas:")
+                    
+                    for linea in lineas[-50:]:
+                        self.console.print(f"[dim]{linea.strip()}[/dim]")
+            else:
+                self.console.print(f"[red]El archivo {ruta} no existe.[/red]")
+        
+        input("\n🔍 Análisis completado. Presiona Enter...")
 
     def ejecutar_comandos_sistema(self):
         """Menú para ejecutar comandos del sistema útiles para análisis."""
