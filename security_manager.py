@@ -12,6 +12,8 @@ import colorama
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from colorama import Fore, Back, Style, init
+
 
 def ejecutar_comando(comando):
    
@@ -26,9 +28,9 @@ def ejecutar_comando(comando):
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Comprobar si el script se está ejecutando como root
-if os.geteuid() != 0:
-    print("Este script debe ejecutarse como root o con sudo .")
-    exit(1)
+#if os.geteuid() != 0:
+ #   print("Este script debe ejecutarse como root o con sudo .")
+  #  exit(1)
 
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -65,12 +67,6 @@ def regla_existente_puerto(cadena, protocolo, puerto, direccion):
             print(f"[x] No se encontró la regla exacta con el patrón: {patron}")
     return False
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
-
-'''def validar_puerto(puerto):
-    if ':' in puerto:
-        inicio, fin = puerto.split(':')
-        return re.match(r'^\d+$', inicio) and re.match(r'^\d+$', fin) and 1 <= int(inicio) <= 65535 and 1 <= int(fin) <= 65535
-    return re.match(r'^\d+$', puerto) and 1 <= int(puerto) <= 65535'''
 
     
 def validar_puerto(puerto):
@@ -114,29 +110,6 @@ def permitir_puerto():
     if not confirmar_accion("¿Estás seguro de que quieres aplicar estos cambios?"):
         print("Operación cancelada.")
         return
-    #creamos una lista con los protocolos que se han seleccionado
-    """    tipos = []
-    if tipo == "tcp":
-        tipos.append("tcp")
-    elif tipo == "udp":
-        tipos.append("udp")
-    elif tipo == "ambos":
-        tipos = ["tcp", "udp"]
-    else:
-        print("Opción no válida. Debes elegir entre 'tcp', 'udp' o 'ambos'.")
-        return
-    #y otra lista con las direcciones
-    direcciones = []
-    if direccion == "entrante":
-        direcciones.append("dport")
-    elif direccion == "saliente":
-        direcciones.append("sport")
-    elif direccion == "ambos":
-        direcciones = ["dport", "sport"]
-    else:
-        print("Opción no válida. Debes elegir entre 'entrante', 'saliente' o 'ambos'.")
-        return"""
-    
 
     #iteramos sobre tipos
     for tipo in tipos:
@@ -439,37 +412,77 @@ def denegar_rango_ip():
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
-# Funciones para gestionar reglas del firewall
+
 def ver_reglas_firewall():
-    # Implementar la función para ver las reglas actuales del firewall
-    print("**************************************")
-    print("* Reglas de Firewall (ACCEPT y DROP) *")
-    print("**************************************")
+    # Inicializar colorama 
+    init(autoreset=True)
+    # Lista de cadenas a verificar
+    chains = ['INPUT', 'FORWARD', 'OUTPUT']
     
-    # Mostrar solo las reglas importantes: ACCEPT, DROP, y otras necesarias
-    for chain in ['INPUT', 'FORWARD', 'OUTPUT']:
-        print(f"\nReglas para la cadena {chain}:")
+    # Colores para las diferentes acciones
+    colors = {
+        'ACCEPT': Fore.GREEN,
+        'DROP': Fore.RED,
+        'REJECT': Fore.RED,
+        'RELATED': Fore.YELLOW,
+        'ESTABLISHED': Fore.YELLOW,
+        'DNAT': Fore.CYAN,
+        'SNAT': Fore.CYAN,
+        'MASQUERADE': Fore.CYAN
+    }
+    
+    for chain in chains:
+        # Encabezado de la cadena con fondo diferente
+        print(f"\n{Back.WHITE}{Fore.BLACK}{Style.BRIGHT} Reglas para la cadena {chain}: {Style.RESET_ALL}")
+        
         try:
+            # Ejecutar comando para obtener las reglas
             result = subprocess.run(
-                f"iptables -L {chain} -v -n | grep -E 'ACCEPT|DROP|RELATED|ESTABLISHED'",
+                f"iptables -L {chain} -v -n",
                 shell=True,
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-            print(result.stdout.decode())
+            
+            # Procesar la salida línea por línea
+            lines = result.stdout.decode().splitlines()
+            
+            # Imprimir encabezado de tabla
+            if len(lines) > 1:
+                header = lines[0]
+                print(f"{Fore.BLUE}{Style.BRIGHT}{header}")
+                
+                # Imprimir reglas con colores según la acción
+                for line in lines[2:]:  # Saltar las primeras 2 líneas (encabezado y columnas)
+                    colored_line = line
+                    
+                    # Aplicar colores a las palabras clave
+                    for keyword, color in colors.items():
+                        if keyword in line:
+                            colored_line = colored_line.replace(keyword, f"{color}{keyword}{Style.RESET_ALL}")
+                    
+                    # Si es DROP o REJECT, resaltar toda la línea
+                    if "DROP" in line or "REJECT" in line:
+                        print(f"{Fore.RED}{colored_line}")
+                    # Si es ACCEPT, ponerla en verde
+                    elif "ACCEPT" in line:
+                        print(f"{Fore.GREEN}{colored_line}")
+                    # Para el resto, mostrar con los colores aplicados a palabras clave
+                    else:
+                        print(colored_line)
+            else:
+                print(f"{Fore.YELLOW}No hay reglas definidas para esta cadena.")
+                
         except subprocess.CalledProcessError:
-            print(f"No se pudieron obtener las reglas para la cadena {chain}.")
-    
-    print("*************************************")
+            print(f"{Fore.RED}No se pudieron obtener las reglas para la cadena {chain}.")
+
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #para limpiar las reglas del firewall
-def limpiar_reglas():
-    # Implementar la función para limpiar todas las reglas del firewall
-    if confirmar_accion('[!] Seguro que quieres limpiar todas las reglas del firewall??'):
-        print("Limpiando todas las reglas del firewall...")
+def limpiar_reglas(n):
+    if n:
         comandos = [
             #eliminamos todas las reglas de trafico de red
             [f"  iptables -F"],
@@ -481,7 +494,23 @@ def limpiar_reglas():
         ]
         for comando in comandos:
             ejecutar_comando(comando)
-        print("Reglas del firewall limpiadas.")
+        return
+    # Implementar la función para limpiar todas las reglas del firewall
+    else: 
+        if confirmar_accion('[!] Seguro que quieres limpiar todas las reglas del firewall??'):
+            print("Limpiando todas las reglas del firewall...")
+            comandos = [
+                #eliminamos todas las reglas de trafico de red
+                [f"  iptables -F"],
+                #eliminamos cadenas personalizadas que se hayan podido crear
+                [f"  iptables -X"],
+                #y lo mismo pero para las tablas nat
+                [f"  iptables -t nat -F"],
+                [f"  iptables -t nat -X"],
+            ]
+            for comando in comandos:
+                ejecutar_comando(comando)
+            print("Reglas del firewall limpiadas.")
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -577,7 +606,7 @@ def optimizar_firewall():
         print("Error al obtener las reglas de iptables.")
         return
 
-    limpiar_reglas()
+    limpiar_reglas(True)
     bloqueos = []
     permisos = []
     reglas_unicas = set()  # Usamos un conjunto para eliminar duplicados
@@ -886,6 +915,7 @@ def monitoreo_trafico():
     subprocess.call("  iftop", shell=True)
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
+#crear la clase Log analyzer
 class LogAnalyzer:
     def __init__(self):
         # Configuración de colores
@@ -977,7 +1007,7 @@ class LogAnalyzer:
                     self.console.print(f"[red]{salida}[/red]")
 
         input("\n🔍 Análisis avanzado completado. Presiona Enter...")
-        
+
     def analizar_logs_por_tipo(self):
         """Análisis específico por tipo de log."""
         tipos_logs = {
@@ -1178,7 +1208,7 @@ def configuracion_inicial():
     if conectado_ssh == "si":
         # Obtener la IP del usuario conectado por SSH
         ip_ssh = os.environ.get("SSH_CLIENT", "").split()[0] if "SSH_CLIENT" in os.environ else ""
-        
+
         if not ip_ssh:
             print("No se pudo detectar la IP de la sesión SSH.")
             os.system("who")
@@ -1263,7 +1293,7 @@ def main():
             eliminar_reglas()
 
         elif opcion == "salir":
-            ejecutar_comando("  netfilter-persistent save")
+            ejecutar_comando("netfilter-persistent save")
             print("Saliendo del script.")
             break
 
@@ -1296,8 +1326,10 @@ def configurar_firewall():
         elif opcion_firewall == 'ver_reglas_firewall':
             ver_reglas_firewall()
             input("Presiona Enter para continuar...")
+            ejecutar_comando("netfilter-persistent save")
+
         elif opcion_firewall == 'limpiar_reglas':
-            limpiar_reglas()
+            limpiar_reglas(False)
             input("Presiona Enter para continuar...")
         elif opcion_firewall == 'eliminar_reglas':
             eliminar_reglas()
